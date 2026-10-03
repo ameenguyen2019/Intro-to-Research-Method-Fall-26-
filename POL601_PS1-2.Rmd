@@ -1,0 +1,263 @@
+---
+title: "Problem Set 1"
+subtitle: "POL601 — Political Science Methodology "
+author: "Mai Anh Nguyen"
+date: "09/10/26"
+output: 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS1")
+```
+
+# Part 1: Bias in Self-Reported Turnout
+
+## Question 1.1
+
+*Load the data into R and check the dimensions of the data. Also obtain a summary
+of the data. How many observations are there? What is the range of years covered?*
+
+```{r q1-1}
+turnout <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS1/turnout.csv")
+dim(turnout)
+summary(turnout)
+```
+
+**Answer.**
+There are 14 observations and
+28 years were covered (from 1980-2008)
+
+## Question 1.2
+
+*Calculate the turnout rate based on the voting age population (VAP), adding
+eligible overseas voters to the denominator. Then calculate the turnout rate
+using the voting eligible population (VEP). What difference do you observe?*
+
+```{r q1-2}
+### Method 1: Turn out rate for each year
+turnout$tur.rat.VAP <- turnout$total / (turnout$VAP + turnout$overseas) # Add "tur.rat.VAP" as a column, then calculate the turnout rate based on the voting age population (VAP)
+turnout$tur.rat.VEP <- turnout$total / turnout$VEP # Add "tur.rat.VEP" as a column, then calculate the turnout rate using the voting eligible population (VEP)
+turnout.rate <- turnout[, c("year", "tur.rat.VAP", "tur.rat.VEP")] # Create a small dataset to view the difference 
+turnout.rate
+
+### Method 2: Turn out rate across 14 years
+mean(turnout$total / (turnout$VAP + turnout$overseas))
+mean(turnout$total / turnout$VEP)
+```
+
+**Answer.**
+The turnout rates using the voting eligible population (VEP) are always greater than 
+the turnout rates based on the voting age population (VAP) across different years. 
+
+## Question 1.3
+
+*Compute the difference between the VAP and ANES estimates of the turnout rate.
+How big is the difference on average? What is its range? Repeat for VEP vs. ANES.
+Briefly comment.*
+
+```{r q1-3}
+tur.rat.VAP <- turnout$total / (turnout$VAP + turnout$overseas) * 100  # calculate VAP turnout rate in percentage
+tur.rat.VEP <- turnout$total / turnout$VEP * 100  # calculate VEP turnout rate in percentage
+dif1 <- tur.rat.VAP - turnout$ANES  # the difference between VAP & ANES turnout rates in percentage
+dif1
+mean(abs(dif1))  # the difference on average between VAP & ANES
+range(dif1)   # range of difference between VAP & ANES
+dif2 <- tur.rat.VEP - turnout$ANES # the difference between VEP & ANES turnout rates in percentage
+dif2
+mean(abs(dif2)) # the difference on average between VEP & ANES
+range(dif2)    # range of difference between VEP & ANES
+```
+
+**Answer.**
+On average, the difference between VAP and ANES is 20.33 (percentage points), 
+ranging from -26.17 to -11.06. 
+And the average difference between VEP and ANES is 16.83 (percentage points), 
+ranging from -22.49 to -8.58 (percentage points).
+
+## Question 1.4
+
+*Compare the mean VEP turnout rate with the mean ANES turnout rate separately for
+elections before and after 1990. Generate a binary indicator for before/after 1990.*
+
+```{r q1-4}
+turnout$after1990 <- ifelse(turnout$year >= 1990, 1, 0) # create a dummy variable 
+            #for before & after (1 is after 1990, 0 is before 1990), year >= 90
+aggregate(cbind(tur.rat.VEP * 100, ANES) ~ after1990, data = turnout, mean) # compute mean for each group (before & after 1990)
+
+```
+
+**Answer.**
+Before 1990, the mean VEP turnout rate was 46.82%, which was less than 
+the mean ANES turnout rate was 62.50%. After 1990, the mean VEP turnout rate 
+was 50.55%, which was also less than the mean ANES turnout rate was 68.25%. 
+
+
+## Question 1.5
+
+*Calculate an adjustment to the 2008 VAP turnout rate. Subtract ineligible felons
+and non-citizens from the VAP to get an adjusted VAP; subtract overseas ballots
+counted from total ballots. Compare the adjusted VAP turnout with the unadjusted
+VAP, the VEP, and the ANES turnout rates.*
+
+```{r q1-5}
+turnout.2008 <- turnout[turnout$year == 2008,] # select the 2008 row only
+turnout$adj.VAP <- turnout.2008$VAP - turnout.2008$felons - turnout.2008$noncit  # an adjusted VAP
+turnout$adj.total <- turnout.2008$total - turnout.2008$osvoter   # an adjusted total
+adj.VAP.tur.rat <- turnout.2008$adj.total / turnout.2008$adj.VAP # calculate the adjusted the 2008 VAP turnout rate
+adj.VAP.tur.rat
+mean(turnout$total / (turnout$VAP + turnout$overseas)) # calculate the unadjusted VAP turnout rate
+mean(turnout$total / turnout$VEP) # calculate the unadjusted VEP turnout rate
+mean(turnout$ANES) / 100 # calculate the unadjusted ANES turnout rate
+```
+
+**Answer.**
+The adjusted 2008 VAP turnout rate (0.61) is greater than the unadjusted VAP 
+and VEP turnout rates (0.45 and 0.49, respectively), but smaller than 
+the ANES turnout rate (0.66)
+
+\newpage
+
+# Part 2: Success of Leader Assassination as a Natural Experiment
+
+```{r load-leaders}
+leaders <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS1/leaders.csv")
+```
+
+## Question 2.1
+
+*How many assassination attempts are recorded? How many countries experience at
+least one attempt?*
+
+```{r q2-1}
+dim(leaders)
+head(leaders)
+length(unique(leaders$country)) # find the number of countries experience at least 1 attempt of assassination
+```
+
+**Answer.**
+There were 250 assassination attempts are recorded. 
+There were 88 countries experience at least one attempt.
+
+## Question 2.2
+
+*Create a binary variable `success` equal to 1 if the leader dies and 0 if the
+leader survives. Store it in the data frame. What is the overall success rate?
+Does the result support the claim that success is randomly determined?*
+
+```{r q2-2}
+## create variable, 1 if died "from" attack, 0 otherwise
+## convert the character variable to a factor (bc result is character var, need convert to factors)
+lev <- levels(factor(leaders$result))
+lev # shows response categories
+
+leaders$success <- ifelse(leaders$result == lev[1] | leaders$result == lev[2] |
+                          leaders$result == lev[3] | leaders$result == lev[4],
+                          1, 0)
+mean(leaders$success) # calculate the overall success rate
+                          
+
+```
+
+**Answer.**
+The overall success rate is 0.18 or 18%. 
+The result doesn't support the claim that success is randomly determined.
+
+
+## Question 2.3
+
+*Does the average polity score in the 3 years prior to the attempt differ between
+successful and failed attempts? Does the age of the targeted leader differ?
+Interpret in light of the validity of the natural-experiment argument.*
+
+```{r q2-3}
+tapply(leaders$politybefore, leaders$success, mean) # calculate the average polity score for successful and failed attempts
+tapply(leaders$age, leaders$success, mean) # calculate the average leader age for successful and failed attempts
+```
+
+**Answer.**
+Yes, the average polity score in the 3 years prior to the attempt differs 
+between successful (-0.32) and failed (-1.79) attempts. 
+Yes, the age of the targeted leader differs between 
+successful (57.22 years old) and failed (52.69 years old) attempts. 
+Therefore, leaders who faced successful attempts, 
+were about 4.53 years older on average than those in failed attempts. 
+It appears that older leaders are more likely to be killed, 
+and this doesn't support the assumption of the natural experiment that 
+success is randomly determined. Alternatively, the leader age difference weakens 
+the validity of the natural experiment argument. 
+
+## Question 2.4
+
+*Repeat the analysis using the country's experience of war. Create a binary
+variable `warbefore` equal to 1 if the country was in either a civil or an
+international war in the 3 years prior to the attempt. Interpret.*
+
+```{r q2-4}
+leaders$warbefore <- ifelse(leaders$civilwarbefore == 1 | # Create a binary variable `warbefore`
+                          leaders$interwarbefore == 1,
+                          1, 0
+)
+tapply(leaders$warbefore, leaders$success, mean) # calculate the average country's experience of war for successful and failed attempts
+
+```
+
+**Answer.**
+The experience of war differs between successful (34.78%) and 
+failed (37.25%) attempts. Therefore, the country which faced successful attempts, 
+were about 2.47 percentage points lower on average than those in failed attempts. 
+It appears that successful and failed attempts of assassinations are relatively 
+similar regarding prior war experience, and this small difference supports 
+the assumption of the natural experiment that success is randomly determined, 
+and not related to prior conditions like war. 
+
+## Question 2.5
+
+*Does successful leader assassination cause democratization? Does it lead countries
+to war? Analyze the data — for instance, by comparing polity scores or the war
+variables before and after an assassination. Interpret.*
+
+```{r q2-5}
+## compare polity scores before to after
+diff.pol.succ <- mean(leaders$polityafter[leaders$success == 1]) -
+  mean(leaders$politybefore[leaders$success == 1]) # successful
+diff.pol.unsucc <- mean(leaders$polityafter[leaders$success == 0]) -
+  mean(leaders$politybefore[leaders$success == 0]) # unsuccessful
+## difference in differences
+diff.pol.succ- diff.pol.unsucc
+
+### The assumption here is that the change in polity scores for countries with successful attempts would be the same as the change for those with unsuccessful attempts had their assassinations not been successful. The result, while positive, is so small as to suggest that successful attempts do not cause democratization.
+
+## create variable for warafter
+leaders$warafter <- ifelse(leaders$interwarafter == 1 | 
+                             leaders$civilwarafter == 1, 1, 0)
+leaders$warbefore <- ifelse(leaders$interwarbefore == 1 |
+                              leaders$civilwarbefore == 1, 1, 0)
+## compare war before to after among successful and unsuccessful
+diff.war.succ <- mean(leaders$warafter[leaders$success == 1]) - 
+  mean(leaders$warbefore[leaders$success == 1])
+diff.war.unsucc <- mean(leaders$warafter[leaders$success == 0]) -
+  mean(leaders$warbefore[leaders$success == 0])
+diff.war.succ- diff.war.unsucc # difference in differences
+
+```
+
+**Answer.**
+The polity scores before and after a successful assassination were -0.31 
+and -0.32, respectively. The difference between before and after 
+the assassination was -0.01, nearly no change in polity score. 
+This indicates that polity score appears to be unchanged after 
+the successful attempt. Alternatively, successful leader assassination doesn't 
+seem to cause democratization. 
+
+For countries which were in successful assassinations, 
+the proportion of the country's international war was decreasing 
+from 21.74% (before) to 6.52% (after). This decrease was about 15.22 percentage 
+points. Therefore, successful leader assassination doesn't lead countries go to 
+international war. 
+
+For countries which were in successful assassinations, 
+the proportion of the country's civil war remained unchanging 15.22% (before) 
+to 15.22% (after). Thus, successful leader assassination doesn't lead 
+countries go to civil war. 
