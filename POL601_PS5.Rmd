@@ -1,0 +1,301 @@
+---
+title: "Problem Set 5"
+subtitle: "POL601 — Political Science Methodology "
+author: "Mai Anh Nguyen"
+date: "11/19/26"
+output: 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Democracy and Redistribution
+
+## Question 1
+
+*Read in the two files, world_bank.csv and polity.csv. What is the unit of observation of the two datasets?
+What is the number of observations in each? Additionally, calculate the proportion of missing data for each
+and every variable in the World Bank data. Which variables seem to be missing the most data? You can use
+a loop to answer this question or you can do it some other and more efficient way (via ifelse() combined
+with is.na()).*
+
+```{r q1}
+world.bank <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/PS Methodology/PS5/world_bank.csv")
+polity.iv <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/PS Methodology/PS5/polity.csv")
+# find observations in each dataset
+dim(world.bank)
+dim(polity.iv)
+
+# calculate the proportion of missing data for each dataset
+mean(is.na(world.bank))
+mean(is.na(polity.iv))
+
+# calculate the proportion of missing data for each variable in World Bank 
+colMeans(is.na(world.bank))
+```
+
+**Answer.**
+The unit of observation of two datasets is country-year. In World Bank dataset,
+there are 10,074 observations. In Polity IV, there are 17,228 observations. 
+
+The proportion of missing data for World Bank dataset is 0.1. The proportion of 
+missing data for Polity IV dataset is 0.42.
+
+The proportion of missing data for gdp_growth is 0.23; for gdp_per_capita is 
+0.25; for inf_mort is 0.17; for pop_density is 0.04.
+
+gdp_per_capita seems to be missing the most data (because the highest proportion
+of missing data, 0.25)
+
+
+## Question 2
+
+*Let’s clean the data and prep it for merging. First, subset the polity data so it contains (1) only years
+from 1970 to 2015 (make sure to include both 1970 and 2015) and (2) only the columns we need: scode,
+year, polity. Then, rename the column scode to country_code, so we can merge this dataset with the
+World Bank dataset (the ‘pivot’ or ‘common’ variables for the merge need to be named the same). Finally,
+merge the two datasets using both country_code and year. You may want to use the function merge() (do
+?merge to learn more and see my R scripts for help with merging). How many observations are in this new
+merged dataset?*
+
+```{r q2}
+# subset the polity data, select all columns
+polity_clean <- polity.iv[polity.iv$year >= 1970 & polity.iv$year <= 2015, ]
+# keep required columns
+polity_clean <- polity_clean[, c("scode", "year", "polity")]
+# rename the column scode to country_code
+library(dplyr)
+polity_clean <- polity_clean %>% rename(country_code = scode)
+# merge 2 datasets using both country_code and year
+merge_data <- merge(polity_clean, world.bank, by = c("country_code", "year"))
+dim(merge_data)
+```
+
+**Answer.**
+There are 3199 observations in the new dataset.
+
+## Question 3
+
+*Now we are going to investigate the pattern of missing data. In a linear regression in R, if any of the variables
+used are missing for an observation, that row will not included in the analysis. This is a major problem
+in previous analyses, as pointed out by Ross (2006). As a basis for future questions, create a new column
+variable in the merged dataset called missing which has a value of 1 if any of the variables in your merged
+dataset are missing, and 0 otherwise. Hint: Using the function ifelse() with apply(x, 1, anyNA) as the
+condition may be helpful. The function apply() will go row by row in dataset x, check if there are any NA’s
+(hence anyNA) in any of the columns, and output TRUE if any of the entries are missing, and FALSE otherwise.
+These types of columns are usually called indicators: they indicate the presence of missing data.*
+
+```{r q3}
+# 1: apply functions row by row
+merge_data$missing <- ifelse(apply(merge_data, 1, anyNA), 1, 0) 
+# view first 6 rows
+head(merge_data)
+table(merge_data$missing)
+
+```
+
+**Answer.**
+
+
+## Question 4
+
+*Let’s visualize the pattern of missingness across time. Calculate the proportion of rows with missing data
+by year (the mean of missing per year). Then plot that in a graph, with the years as the x-axis, and the
+proportion of missingness as the y-axis. Make sure to include informative titles and labels. How has the
+pattern of missing data evolved over time?*
+
+```{r q4}
+# mean of missing per year
+missing_year <- merge_data %>%
+  group_by(year) %>%
+  summarise(prop_missing = mean(missing, na.rm = TRUE))
+missing_year
+# plot a graph (x-axis = year, y-axis = proportion of missingness)
+plot(missing_year$year, missing_year$prop_missing,
+    xlab = "Year", ylab = "The proportion of missingness",
+    main = "The pattern of missingness across time")
+```
+
+**Answer.**
+The pattern of missing data is in a downward trend over time. The proportion 
+of missing data decreased from 1970 to 2010. The greatest proportion of missing 
+data was in 1970 (0.368), then went down substantially to 0.182 in 1990, 
+and leveled off in the 2000s, nearly reached 0 in 2010 onward. 
+
+## Question 5
+
+*Let’s compare the polity scores of country-year observations with missing data and those without. Make a
+boxplot graph of the polity scores in the group of observations with missing data, and in the group without
+missing data. Using the formula argument of the boxplot() function may help you in placing these two
+boxplots in the same plot. Do countries with and without missing data differ in their polity scores?*
+
+```{r q5}
+# Make a boxplot of polity scores for missing data vs. without missing data
+boxplot(polity ~ missing, data = merge_data, 
+        xlab = "Data Status", ylab = "Polity Scores",
+        main = "Polity Scores by Missing Data Status",
+        names = c("No Missing Data", "Missing Data"))
+# check if medians for both groups are correct
+tapply(merge_data$polity, merge_data$missing, median, na.rm = TRUE)
+
+
+```
+
+**Answer.**
+Countries with and without missing data differ in their polity scores. For
+countries without missing data, the median polity score is 6. For countries 
+with missing data, the median polity score is -7. The median polity score
+of countries without missing data is much higher than those with missing data 
+(6 > -7)
+
+
+## Question 6
+
+*In his study, Ross analyzes whether a democracy is better for the poor by looking at infant mortality. The
+intuition is that countries that do more for the poor help decrease infant mortality by improving access to
+public healthcare, among other policies. We will now run a set of regressions without taking into account
+differences across country or time. In other words, we will not address the problems that Ross identifies in his
+study. First, run a simple bivariate regression between child infant mortality (DV) and the polity democracy
+indicator (IV). Make sure to plot the distribution of the infant mortality variable and decide whether you
+need to use log transformation. What do the results suggest? Interpret the coefficients and assess statistical
+significance.*
+
+```{r q6}
+# check summary statistics (heavily right-skewed)
+summary(merge_data$inf_mort)
+
+# to decide whether need to log infant mortality, check its distribution
+hist(merge_data$inf_mort, freq = FALSE,
+     xlab = "Infant mortality",
+     col = "blue",
+     main = "Distribution of infant mortality")
+
+# the distribution of infant mortality is heavily right-skewed, thus we need to
+# do log transformation
+merge_data$inf_mort_ln <- log(merge_data$inf_mort)
+
+# bivariate regression between polity & infant mortality
+m1 <- lm(inf_mort_ln ~ polity, data = merge_data)
+summary(m1)
+
+# compute the coefficient of polity in percentage
+100 * (exp(-0.07197) - 1)  # beta = -6.94
+
+**Answer.**
+Because the distribution of infant mortality is heavily right-skewed, a longer 
+tail toward higher values of mortality, thus we need to do log transformation.  
+
+The results suggest that as polity is zero, log of infant mortality is 3.79.
+Additionally, for every one-unit change in polity score, log of infant mortality 
+has a decrease of 0.07 percentage point. Alternatively, for each one-unit change 
+in polity score, there is a 6.94% decrease in infant mortality. 
+
+The t-value of polity is approximately 14.87 times larger than the threshold 
+(-29.14 = 1.96 x 14.87), and p-value of polity is less than 2e-16 
+(or p-value < 0.001). Therefore, the coefficient of polity is very statistically 
+significant at the 0.1% significance level.
+
+## Question 7
+
+*Now based on the results from the model in 6, manually calculate the confidence interval (1) around both the
+null hypothesis (i.e. that the effect of polity on infant mortality is 0) and (2) around the estimate for the
+effect of polity. Why is the relationship significant according to each of the two confidence intervals?*
+
+```{r q7}
+# calculate CI for H0:
+95% CI = [0 - 1.96 x 0.00247; 0 + 1.96 x 0.00247] = [-0.005; 0.005]
+
+# calculate CI for H1:
+95% CI = [-0.07197 - 1.96 x 0.00247; -0.07197 + 1.96 x 0.00247] = [-0.08; -0.07]
+
+
+```
+
+**Answer.**
+The relationship is significant according two confidence intervals. First,
+according to confidence interval of the null hypothesis, the estimated 
+coefficient of polity (beta = -0.07) completely falls outside the interval
+[-0.005; 0.005] which is around zero. Second, according to confidence interval 
+of the alternative hypothesis, [-0.08; -0.07], this interval is around the 
+estimated coefficient, and doesn't contain zero. Therefore, the effect of polity 
+is statistically significant at 95% level. We reject the null hypothesis that 
+the effect of polity on infant mortality is zero. 
+ 
+
+## Question 8
+
+*Now let’s run a multivariate regression, adding three possible confounders that are theoretically related
+with both democracy and infant mortality: population density, gdp growth, and gdp per capita. As in the
+previous section, plot these variables’ densities and decide which need to be logged. Now regress logged
+infant mortality (DV) on polity score plus the three predictors (population density, growth, and GDP pc).
+State the null hypothesis regarding the polity score. Interpret your point estimates, standard error, and
+p-value on the polity variable. In what ways have the results changed? Make sure to interpret the effect of
+the other 3 confounders in relation to their predicted directions (they all should be negatively associated with
+infant mortality, in theory.) [Note: because the DV is logged, you have two options. One is to interpret the
+coefficient as producing a change in the log of Y, but that is not very intuitive or meaningful. The alternative
+is to do this: (exp(coef(model_name)[2] - 1) * 100), and interpret the result as a percent change on Y.
+Both options are OK in terms of this problem set, but the latter is the right approach in research.]*
+
+```{r q8}
+
+```
+
+**Answer.**
+
+
+## Question 9
+
+*Show the results from the two models you just ran in one properly formatted, publishable table. Use the
+stargazer package & command for this, placing the two models (from questions 6 and 8) side by side in the
+table. Make sure (1) the DV of the models is clear; (2) you relabel the variables so their name is also clear;
+(3) you include some key statistics for each model, such as N or r2 to assess model fit.*
+
+```{r q9, results='asis'}
+
+```
+
+**Answer.**
+
+
+## Question 10
+
+*Now let’s assess whether the effects of the multivariate regression are substantively meaningful. First, plot
+the predicted values with their confidence intervals for the effect of polity on logged infant mortality (this
+is sometimes referred to as a marginal effects plot). Make sure to use the coefficients from the multiple
+regression model, not the bivariate model. Describe the results from the plot.
+Second, investigate substantive significance more in-depth. Calculate the predicted value of logged infant
+mortality at different meaningful levels of Polity and compare them. Recall that Polity ranges between -10
+and 10, and that strong dictatorships are usually considered to be between -10 and -6, while democracies
+range between 6 and 10. The rest are hybrid regimes. A good example of a meaningful and realistic change
+might be going from 0 to 8 –from a middle-of-the-road hybrid regime to a relatively functioning democracy.
+Others exist. Conversely, going from full dictatorship (-10) to full democracy (10) is not very realistic, so try
+not compare extreme value changes. Based on the comparison you chose, is the effect of democracy on infant
+mortality substantively meaningful after controlling for the three confounders?*
+
+```{r q10}
+
+```
+
+**Answer.**
+
+
+## Extra Credit
+
+*Let’s rerun the statistical model presented by Ross (2006), slightly modified. Regress logged infant mortality
+on the following predictors: polity score, gdp growth, logged gdp per capita, and logged population density.
+Following Ross, we now add fixed effects by country and year. The idea behind fixed effects is similar to
+what you learned about differences-in-differences, but now it’s applied to general statistical models rather
+than quasi-experimental observational studies. We want to control for unobserved confounders across units
+(countries here) and time (years). To do this, add countries and years to the model as factor variables
+(categorical). Interpret the results again and compare them to question 7. What are the differences between
+the results of this model and those of the model in the previous question? What might that be due to? Give
+a substantive interpretation. Lastly, compare the number of degrees of freedom in all 3 models. Why are
+they different?*
+
+```{r extra-credit}
+
+```
+
+**Answer.**
