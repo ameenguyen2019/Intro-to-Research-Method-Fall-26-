@@ -1,0 +1,282 @@
+---
+title: "Problem Set 3"
+subtitle: "POL601 — Political Science Methodology "
+author: "Mai Anh Nguyen"
+date: "10/8/26"
+output: 
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS3")
+```
+
+# Question 1: Immigration Attitudes and Economic vs. Cultural Threat
+
+## Question 1.1
+
+*Start by examining the distribution of immigration attitudes (as factor variables). What is the proportion of
+people who are willing to increase the quota for high-skilled foreign professionals (h1bvis.supp) or support
+immigration from India (indimm.supp)?*
+
+```{r q1-1}
+immig <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS3/immig.csv")
+# Count missing values; both variables have missing values
+colSums(is.na(immig))
+
+# Remove missing values for two variables
+h1b <- na.omit(immig$h1bvis.supp) # for H-1B support
+table(h1b)
+
+indimm <- na.omit(immig$indimm.supp) # for Indian immigration support
+table(indimm)
+
+# Find the proportion and make plot for each variable
+prop.table(table(h1b))
+barplot(table(h1b), main = "The distribution of H-1B visa support",
+        xlab = "Response", ylab = "Number of respondents")
+
+prop.table(table(indimm))
+barplot(table(indimm), main = "The distribution of Indian immigration support",
+        xlab = "Response", ylab = "Number of respondents")
+
+```
+
+**Answer.**
+In terms of people who are willing to increase the quota for high-skilled 
+foreign professionals, two most common options are '0' (decrease a great deal) 
+and '0.5' (keep about the same). 30.74% of respondents support the decrease in 
+H-1B visas, and 29.85% of them favor keeping the number of H-1B visas the same.
+
+The proportion of people who are willing to increase the quota for high-skilled 
+foreign professionals is 0.166 (= 0.102 + 0.064, which are the sum of 
+proportions of '0.75' and '1' options). 
+
+In terms of people who are willing to support immigration from India, two most
+common options are '0.5' (keep about the same) and '0' (decrease a great deal).
+39.83% of respondents support to keep the number of Indian immigrants the same, 
+and 28.78% of them support the decrease in Indian immigrants. 
+
+The proportion of people who are willing to increase the quota for immigration 
+from India is 0.131 (= 0.099 + 0.032, which are the sum of proportions 
+of '0.75' and '1' options). 
+
+
+## Question 1.2
+
+*Now create a cross-tabulation of support for increasing H1-B visas and gender using the variable female.
+You can use the CrossTable() function from the gmodels package, setting female as your x variable. You
+should also set prop.chisq=F, prop.t = F, prop.c = F in the options to make sure the proportions are
+calculated by gender. What patterns do you observe? Are the differences substantively meaningful?*
+
+```{r q1-2}
+library(gmodels)
+# Remove missing values in female & H-1B support variables
+# And store in new data frame
+data_crosstab <- na.omit(immig[, c("female", "h1bvis.supp")])
+
+# Create a cross-tab for H-1B visa & gender
+CrossTable(data_crosstab$female, data_crosstab$h1bvis.supp,  # CrossTable(x, y)
+           digits = 3, max.width = 5, expected = FALSE,
+           prop.chisq=F, prop.t = F, prop.c = F)
+           
+           
+
+```
+
+**Answer.**
+Males tend to support to increase the number of H-1B visas than females. The 
+proportion of males supporting the increase in H-1B visas is 0.205 
+(= 0.111 + 0.094) or 20.5%, while the proportion of female supporting to 
+increase H-1B visas is 0.145 (= 0.098 + 0.047) or 14.5%. The difference between 
+males and females in support of H-1B is 0.06 (= 0.205 - 0.145) percentage points. 
+
+Meanwhile, females tend to support the decrease in H-1B visas. The proportion of 
+females supporting the decrease in H-1B visas is 0.565 (= 0.328 + 0.237), or 
+56.5%, while the proportion of male supporting to decrease H-1B visas is 0.482
+(= 0.272 + 0.210), or 48.2%. The difference between females and males in 
+opposition to H-1B is 0.083 (= 0.565 - 0.482) percentage points. 
+
+Yes, these differences are meaningful, suggesting the gender difference in 
+either support or oppose H-1B visas. 
+
+ 
+
+## Question 1.3
+
+*Now compare the distribution of two distinct measures of cultural threat: explicit stereotyping about Indians
+(expl.prejud) and implicit bias against Indian Americans (impl.prejud). In particular, create a scatterplot,
+add a linear regression line to it, and calculate the correlation coefficient. Based on these results, what can
+you say about their relationship?*
+
+```{r q1-3}
+# Remove missing values for two variables 'expl.prejud' and 'impl.prejud'
+expl.prejud1 <- na.omit(immig$expl.prejud) # shouldn't remove missing values here, due to the difference in length after removing, regression take care of this, remove inside function
+impl.prejud1 <- na.omit(immig$impl.prejud)
+
+## Compare the distribution of two variables: first, use a boxplot to see the 
+## differences in their distributions
+## Not use data frame before variable names bc after removing missing values, 
+## two new variables aren't inside the original dataset
+boxplot(expl.prejud1, impl.prejud1, 
+        names = c("Explicit Stereotyping", "Implicit Bias"),
+        main = "Distribution of cultural threat measures",
+        ylab = "Scores")
+
+# Second, use histograms to check if their distributions are normal
+hist(expl.prejud1, freq = FALSE, ylim = c(0, 0.8),    # for explicit stereotype
+     xlab = "Explicit Stereotyping", ylab = "Density",
+     main = "Distribution of Explicit Stereotyping")
+
+hist(impl.prejud1, freq = FALSE, ylim = c(0.1, 1.0),  # for implicit bias
+     xlab = "Implicit Bias", ylab = "Density",
+     main = "Distribution of Implicit Bias")
+
+## Create a scatter plot
+# Create a new dataset with complete observations
+immig1 <- na.omit(immig[, c("expl.prejud", "impl.prejud")])
+head(immig1)
+
+# Run a regression 
+m1 <- lm(expl.prejud ~ impl.prejud, data = immig1)
+
+# Make a scatter plot
+plot(immig1$impl.prejud, immig1$expl.prejud,        # plot(x, y)
+     main = "Implicit Bias vs. Explicit Stereotyping",
+     xlab = "Implicit Bias", ylab = "Explicit Stereotyping")
+
+# Add a regression line
+abline(m1)
+
+# Calculate the correlation coefficient
+cor(immig1$impl.prejud, immig1$expl.prejud)
+```
+
+**Answer.**
+According to the boxplot, the measure of implicit bias against Indian 
+Americans has a higher median than the measure of explicit stereotyping about 
+Indians (0.6 > 0.37), and having some outliers below the minimum value of 0.15.
+The measure of explicit stereotyping has some outliers above the maximum 
+value of 0.7. 
+
+Based on two histograms, the distribution of explicit stereotyping isn't 
+normally distributed and right-skewed, whereas the distribution of implicit 
+bias isn't perfectly normal, but relatively symmetrical. 
+
+The correlation coefficient is 0.068, indicating that this is a weak positive 
+relationship between explicit stereotyping and implicit bias. People with low 
+and moderate explicit prejudice have implicit prejudice varied widely. While 
+the relationship between two is positive, but the correlation coefficient is 
+very low (<0.1), indicating that they are two distinct attitudinal constructs.
+
+## Question 1.4
+
+*Compute the correlations between all four policy attitude and cultural threat measures. Do you agree that
+cultural threat is an important predictor of immigration attitudes as claimed in the literature?
+If the labor market hypothesis is correct, opposition to H-1B visas should also be more pronounced among
+those who are economically threatened by this policy such as individuals in the high-technology sector. At
+the same time, tech workers should not be more or less opposed to general Indian immigration because of any
+economic considerations. First, regress H-1B and Indian immigration attitudes on the indicator variable for
+tech workers (tech.whitcol). Do the results support the hypothesis?*
+
+```{r q1-4}
+## Compute the correlations between all four policy attitude and cultural 
+## threat measures
+# Create a dataset including four variables & remove missing values
+immig2 <- na.omit(immig[, c("h1bvis.supp", "indimm.supp",
+                        "expl.prejud", "impl.prejud")])
+
+# Make a correlation matrix to see correlations among variables
+cor(immig2)
+
+## Run regressions
+# Remove missing values from two variables
+data_clean1 <- na.omit(immig[, c("h1bvis.supp", "tech.whitcol")])
+data_clean2 <- na.omit(immig[, c("indimm.supp", "tech.whitcol")])
+
+# Run regression models
+model1 <- lm(h1bvis.supp ~ tech.whitcol, data = data_clean1) # for H-1B support
+summary(model1)
+
+model2 <- lm(indimm.supp ~ tech.whitcol, data = data_clean2) # for Indian 
+summary(model2)                                             # immigrant support
+```
+
+**Answer.**
+Based on the correlation matrix, I agree that cultural threat is an important 
+predictor of immigration attitudes as claimed in the literature. Since both
+explicit stereotyping and implicit bias have negative correlations with 
+H-1B visa support and Indian immigration support (r-values = -0.15; -0.11; 
+-0.32; -0.12, respectively). Strikingly, explicit stereotyping has a moderate
+negative correlation with Indian immigration support (-0.32), this is stronger
+than other three correlations. In general, people having cultural threat 
+perceptions are less supportive of immigration. 
+
+Based on the outputs of two regression models, we get two negative values of 
+beta for the "tech.whitcol" variable, -0.05 (model 1) and -0.005 (model 2). 
+For one-unit increase in high-technology workers, there is a 0.05 percentage 
+point decrease in H-1B visa support. Likewise, for one-unit increase in 
+high-technology workers, there is a 0.005 percentage point decrease in 
+Indian immigration support. Tech workers tend to be less supportive of H-1B visa 
+and Indian immigration. The results seem to support the hypothesis.
+
+### revise: the intercept is 0.35, meaning that the predicted support for H-1B 
+visas for non-tech worker is 35%. The coefficient for tech-worker is -0.053, 
+indicating that for one-unit increase in tech workers, the support for H1B visas
+has a decrease of 5.3 percentage points when compared to non-tech workers. 
+Or tech-workers are 5.3 percentage point less supportive of H1B compared to 
+non-tech workers. 
+
+## Question 1.5
+
+*Age is another important covariate. Fit a linear regression model to explore whether age explains levels of
+H-1B support. Compare the results by plotting the predicted levels of support (y-axis) across the whole age
+range (x-axis). Would you say that people become more opposed to immigration with age?
+Calculate the model’s R2. How much of the variation is explained? Based on this, what can you conclude
+about the role of age in explaining support for H-1B visas?*
+
+```{r q1-5}
+# Remove missing values for both variables
+data_clean3 <- na.omit(immig[, c("h1bvis.supp", "age")])
+
+# Fit a linear regression on 'h1b support & 'age'
+model3 <- lm(h1bvis.supp ~ age, data = data_clean3)
+summary(model3)
+
+## Plot the predicted levels of support (y-axis) across age range (x-axis)
+# Store predicted values in a new data frame
+newdata <- data.frame(
+  age = seq(min(data_clean3$age),
+            max(data_clean3$age)))
+
+newdata$predicted <- predict(model3, newdata = newdata)
+
+# Plot the predicted levels of support (y-axis) across whole age range (x-axis)
+plot(newdata$age,newdata$predicted, type = "l",
+     xlab = "Age range", ylab = "Predicted H-1B support",
+     main = "Predicted H-1B support across age range")
+
+# R-square
+summary(model3)$r.squared
+
+# SD
+sd(data_clean3$h1bvis.supp)
+
+```
+
+**Answer.**
+Yes, people become more opposed to immigration with age due to the downward
+predicted line. As a person becomes older, he is likely to oppose immigration.
+
+# revise: the predicted value shows a strong negative relationship btw age and
+H1B visa support. However, the relationship isn't as strong as it appears. Looking
+at the summary of regression model, every one-year change in age leads to 
+a decrease of 0.2 percentage points in the support for H1B, this change isn't 
+large. This is particularly true for the range of support (0-1). SD of H1B is 0.3. 
+A decrease of -0.002 units indicates a marginal part of one SD, suggesting
+a very weak relationship. 
+
+R-squared is 0.012. Age explains only 1.2% of the variation in H-1B support. 
+Age plays a very minor role in explaining support for H-1B visas. 
+
