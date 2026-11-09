@@ -1,0 +1,565 @@
+---
+title: "Problem Set 2"
+author: "Mai Anh Nguyen"
+date: "09/24/26"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+subtitle: 'POL601 — Political Science Methodology'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS2")
+```
+
+# Question 1: Political Efficacy in China and Mexico
+## Question 1.1
+
+*We begin by analyzing the self-assessment question. Plot the distribution of responses separately for China and
+Mexico using bar plots, where the vertical axis is the proportion of respondents. In addition, compute the mean
+response for each country. Which country’s respondents have a higher degree of political efficacy? Does this seem
+plausible when Mexican citizens voted out the Institutional Revolutionary Party (PRI) after more than 70 years of
+rule and Chinese citizens have not been able to vote in a fair election to date?*
+
+```{r q1-1}
+vignettes <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS2/vignettes.csv")
+# Split dataset into two groups for China and Mexico
+china <- subset(vignettes, china == 1)
+mexico <- subset(vignettes, china == 0)
+
+# Three steps: count, convert to proportions, plot
+# Count and convert to proportion
+tab_china <- prop.table(table(china$self))
+tab_china
+tab_mexico <- prop.table(table(mexico$self))
+tab_mexico
+
+# Make a plot for China
+scale_labels_china <- c("No say\n at all", "Little say", "Some say", "A lot\n of say",
+                  "Unlimited say")
+barplot(tab_china,
+        names = scale_labels_china,
+        xlab  = "Response category",
+        ylab  = "Proportion of respondents",
+        main  = "The distribution of self-assessment responses in China")
+
+# Make a plot for Mexico
+scale_labels_mexico <- c("No say\n at all", "Little say", "Some say", "A lot\n of say",
+                  "Unlimited say")
+barplot(tab_mexico,
+        names = scale_labels_mexico,
+        xlab  = "Response category",
+        ylab  = "Proportion of respondents",
+        main  = "The distribution of self-assessment responses in Mexico")
+
+# Compute mean response for each country
+mean(china$self) # for China
+mean(mexico$self) # for Mexico
+
+```
+
+**Answer.**
+China's respondents have a higher degree of political efficacy than Mexico's 
+ones (2.62 > 1.83). The results seem plausible, because the "self" variable 
+measures self-reported scores of political efficacy among citizens or their 
+perceived political efficacy in terms of perception that is different from the 
+actual political influence of citizens on the government or the election. 
+A Chinese individual can feel capable of engaging in politics, but the political
+system offers him much less opportunity to participate in fair elections that 
+represent his political will. 
+
+## Question 1.2
+
+*We examine the possibility that any difference in the levels of efficacy between Mexican and Chinese respondents is
+due to the difference in their age distributions. Create histograms for the age variable separately for Mexican and
+Chinese respondents. Add a vertical line representing the median age of the respondents for each country. In
+addition, use a Quantile-Quantile plot to compare the two age distributions. What differences in age distribution do
+you observe between the two countries? Are the variables normally distributed or is there skewness? Answer this by
+interpreting each plot.*
+
+```{r q1-2}
+# Make a histogram for China and add a vertical line
+hist(china$age,
+     freq = FALSE,
+     xlab = "Years of age",
+     main = "Distribution of Respondents' Age in China")
+
+med_china <- median(china$age)
+abline(v = med_china, lty = "dashed", lwd = 2, col = "blue")
+text(x = med_china, y = 0.03, labels = "median", pos = 4, col = "blue")
+
+# Make a histogram for Mexico and add a vertical line
+hist(mexico$age,
+     freq = FALSE,
+     xlab = "Years of age",
+     main = "Distribution of Respondents' Age in Mexico")
+
+med_mexico <- median(mexico$age)
+abline(v = med_mexico, lty = "dashed", lwd = 2, col = "red")
+text(x = med_mexico, y = 0.03, labels = "median", pos = 4, col = "red")
+
+# Make Q-Q plot to compare the two age distributions
+qqplot(mexico$age, china$age,
+       xlab = "Age: Mexico",
+       ylab = "Age: China",
+       xlim = c(0, 100), ylim = c(0, 100),
+       main = "Age distributions compared")
+abline(0, 1)
+
+```
+
+**Answer.**
+Looking at histograms, in China, the distritbution of age is not normally 
+distributed and slightly right-skewed (median = 45 < mean = 46.72). In Mexico, 
+the distritbution of age is not normally distributed and fairly right-skewed 
+(median = 35 < mean = 37.93) with a few outliers. Looking at the Q-Q plot,
+the distribution of age in both countries is not normal, most of data points 
+are above the straight line. The slope of the age distribution is greater than
+45 degree, indicating that the respondents' age in China is more dispersed than 
+the respondents' age in Mexico.
+
+## Question 1.3
+
+*One problem of the self-assessment question is that survey respondents may interpret the question differently. For
+example, two respondents who choose the same response category may be facing quite different political situations
+and hence may interpret “A lot of say” differently. To address this problem, we rank a respondent’s answer to the
+self-assessment question relative to the same respondent’s answer to a vignette question. Compute the proportion
+of respondents, again separately for China and Mexico, who rank themselves (according to the self-assessment
+question) as having less say in the government’s decisions than Moses (the last vignette). How does the result of this
+analysis differ from that of the previous analysis? Give a brief interpretation of the result.*
+
+```{r q1-3}
+# Compute the proportion of respondents rank themselves having less say than 
+# Moses
+mean(china$self < china$moses)   
+mean(mexico$self < mexico$moses)
+```
+
+**Answer.**
+While the previous analysis (in Question 1) indicates that China's respondents 
+have a higher degree of political efficacy than Mexico's ones (2.62 > 1.83), 
+the proportion of those Chinese respondents who rank themselves having less say 
+than Moses is greater than that of Mexican respondents (0.56 > 0.25). This 
+suggests that though the Chinese respondents' self-perception of participating 
+in politics is higher than the Mexican respondents' one, more Chinese 
+individuals feel that their sayings possibly do not have an influence on the 
+government, so they would rather suffer in silence. 
+
+## Question 1.4
+
+*Restrict the data to survey respondents who ranked these three vignettes in the expected order (i.e., Alison
+≥Jane≥Moses). Now create a variable that represents how respondents rank themselves relative to each vignette.
+This variable should be equal to 1 if a respondent ranks themself lower than Moses, 2 if ranked the same as Moses
+or higher than Moses but lower than Jane, 3 if ranked the same as Jane or higher than Jane but lower than Alison,
+and 4 if ranked as high as Alison or higher. Create the bar plots of this new variable as in Question 1. The vertical
+axis should represent the proportion of respondents for each response category. Also, compute the mean value of
+this new variable separately for China and Mexico. Give a brief interpretation of the result by comparing these
+results with those obtained in Question 1.*
+
+```{r q1-4}
+# First keep only respondents whose vignette ratings are internally consistent:
+vignettes_ok <- subset(vignettes, alison >= jane & jane >= moses)
+nrow(vignettes)
+nrow(vignettes_ok)   # the number of dropped observations
+
+# Build a new variable in the expected order, earlier conditions ruled out 
+# higher categories
+vignettes_ok$rank4 <- ifelse(vignettes_ok$self >= vignettes_ok$alison, 4,
+                ifelse(vignettes_ok$self >= vignettes_ok$jane, 3,
+                ifelse(vignettes_ok$self >= vignettes_ok$moses, 2, 1)))
+                
+# Count and convert to proportion
+tab_vig_ok <- prop.table(table(vignettes_ok$rank4))
+tab_vig_ok
+
+# Make a plot for the new variable
+scale_labels_vig_ok <- c("Lower than\n Moses", "Moses to\n below Jane",
+                         "Jane to\n below Alison", "Alison\n or higher")
+barplot(tab_vig_ok,
+        names = scale_labels_vig_ok,
+        xlab  = "Response category",
+        ylab  = "Proportion of respondents",
+        main  = "The distribution of self-assessment relative to each vignette")
+
+# Compute mean response for each country
+tapply(vignettes_ok$rank4, vignettes_ok$china, mean) #vignettes_ok$rank4 = var; 
+                                                    # china = group by country
+
+```
+```
+
+**Answer.**
+While China's respondents have a higher degree of political efficacy than 
+Mexico's ones (2.62 > 1.83), the proportion of respondents who rank themselves 
+relative to each vignette in China is lower than the proportion of those 
+in Mexico (2.15 < 2.93). 
+
+## Question 1.5
+
+*Is the problem identified above more or less severe among older respondents when compared to younger ones?
+Consider the previous question for those who are 40 years or older and those who are younger than 40 years. What
+are your conclusions with respect to these two groups of respondents? Relate your discussion to your finding for
+Question 2.*
+
+```{r q1-5}
+# Build a new variable for two age groups
+vignettes_ok$age_group <- ifelse(vignettes_ok$age >= 40, 1, 0)
+
+# Compute the difference between China and Mexico in terms of age groups
+tapply(vignettes_ok$rank4, list(vignettes_ok$china, vignettes_ok$age_group), 
+        mean, na.rm = TRUE)
+
+## Need to compare both the raw self-assessment and adjusted measures within the two age groups to compare with earlier finding
+# Raw self-assessment
+vignettes$age_group <- ifelse(vignettes$age >= 40, 1, 0)
+
+# Compute the difference between China and Mexico in terms of age groups
+tapply(vignettes$self, list(vignettes$china, vignettes$age_group), 
+        mean, na.rm = TRUE)
+
+```
+
+**Answer.**
+For self-assessment, among older respondents, the mean value of respondents' 
+self-ranking for Mexico is 1.77, and China is 2.75. Among younger respondents 
+(those are below 40), the mean value is 1.85 for Mexico, and 2.39 for China. 
+The difference between older respondents is higher compared to younger ones (0.98)
+
+
+Among older respondents (those are 40 years old or older), the mean value of 
+respondents' ranking three vignettes in the expected order for Mexico is 2.92, 
+and China is 2.20 . Among younger respondents (those are below 40), the mean 
+value is 2.93 for Mexico, and 2.04 for China. Thus, the difference between 
+China and Mexico is higher among younger respondents, compared with older ones 
+(2.93 - 2.04 = 0.89 > 2.92 - 2.20 = 0.72). This implies that the China-Mexico
+difference in political efficacy is more severe for younger respondents. As 
+shown in the QQ plot in Question 2, Chinese respondents appear to be older than
+Mexican ones due to more dispersed data points for the China sample. The 
+difference in political efficacy between two countries doesn't seem to be 
+explained by the difference in age groups. 
+
+## Question 1.6
+
+*Researchers interviewed 430 respondents in China (across 2 provinces) and 551 in Mexico (across 3 provinces).
+What is the final sample size for China and Mexico in the data? Discuss the potential reasons behind the
+discrepancy. Are there any biases that could be affecting the results? If so, which ones?*
+
+```{r q1-6}
+# Check the final sample size for each country and the total
+table(vignettes$china)
+dim(vignettes)
+```
+
+**Answer.**
+The final sample size in the data is 781 in which there are 283 respondents in 
+China, and 498 respondents in Mexico. There are fewer 200 respondents than the 
+number of those who are actually interviewed. There are some potential reasons
+for the discrepancy. First, some respondents, who did not complete some specific 
+questions (having missing answers), are exlucded from the analysis. Second, 
+respondents, who provide insufficient information about some key variables, 
+such as age, country, and vignette responses, are also dropped during listwise 
+deletion. Third, during data-cleaning process, reseachers may remove some 
+observations due to their invalidity. 
+
+Yes, there are some biases that could affect the results, such as selection 
+bias and nonresponse bias. First, if a certain type of respondents, who are 
+categorized in a specific group of age or country, are excluded from the study, 
+leading to the disproportion of final sample size that is no longer 
+representative of the population. This may result in a biased study. Second, a 
+certain group of respondents may refuse to complete the interview. Thus, the 
+remaining observations may not represent the entire population. 
+
+
+## Question 1.7
+
+*Plot the histogram of the variable `age` in the vignettes.csv data and describe the shape of the distribution. Is `age` a
+categorical or continuous variable? Now create a new variable called lage and store the log transformation of the
+age variable. Plot the distribution of `lage` and describe the shape. Is using log transformation helpful?*
+
+```{r q1-7}
+# Make a histogram for the 'age' variable
+hist(vignettes$age,
+     freq = FALSE,
+     xlab = "Years of age",
+     main = "Distribution of Respondents' Age")
+
+# Create a new variable for lage
+vignettes$lage <- log(vignettes$age)
+
+# Make a histogram for the 'lage' variable
+hist(vignettes$lage,
+     freq = FALSE,
+     xlab = "Logged Age",
+     main = "Distribution of Respondents' Age")
+```
+
+**Answer.**
+The distribution of the age variable is not normally distributed and 
+right-skewed. Age is continuous variable. 
+
+The distribution of logged age is relatively normally distributed and 
+symmetrical. Using log transformation is helpful. 
+
+\newpage
+
+# Question 2: Sources of Empathy in the Circuit Courts
+
+## Question 2.1
+
+*Load the “dbj.csv file”. Find how many judges there are in the dataset, as well as the gender and party composition
+of our dataset. Is the party composition different for male and female judges? Additionally, note that our outcome
+in this exercise will be the proportion of pro-feminist rulings. What is the range of this variable (progressive.vote)?*
+
+```{r q2-1}
+# Load data
+dbj <- read.csv("~/Dropbox/My Mac (Apple’s MacBook Air)/Desktop/Purdue/Fall 2026/Intro to Research Methods/PS2/dbj.csv")
+dim(dbj)
+length(dbj$name)
+
+# Find the number of female and male judges
+length(dbj$woman[dbj$woman == "0"]) # men
+length(dbj$woman[dbj$woman == "1"]) # women
+
+# Find party composition
+length(dbj$republican[dbj$republican == "1"]) # Republican judges
+length(dbj$republican[dbj$republican == "0"]) # Democratic judges
+
+# Create a two-way table to check party composition across genders
+table(dbj$republican, dbj$woman)
+prop.table(table(dbj$republican, dbj$woman), 2) # compute % each column
+
+# Find range of 'pro-feminist rulings' variable
+range(dbj$progressive.vote, na.rm = TRUE)
+```
+
+**Answer.**
+There are 224 judges in the dataset. There are 186 male judges, and 38 female 
+judges. There are 121 Republican judges, and 103 Democratic judges. 
+
+Party composition differs for male and female judges. Among male judges, 40.86% 
+are Democrats, and 59.14% are Republicans. Among female judges, 71.05% are 
+Democrats, and 28.95% are Republicans. 
+
+The 'pro-feminist rulings' variable ranges from 0 to 1.
+
+## Question 2.2
+
+*Next, we consider differences between some groups. For each of the four groups (Republican men/women,
+Democratic men/women) defined by gender and partisanship, create a boxplot (using a single command) that
+illustrates the differences in progressive.vote. Briefly interpret the results of the analysis. For example, do any of
+the results surprise you? Does it appear that partisanship, gender, or both contribute to progressive voting
+patterns? Should we interpret any of these effects causally? Why or why not?*
+
+```{r q2-2}
+# Create a boxplot
+boxplot(progressive.vote ~ woman + republican, data = dbj,
+        names = c("Dem. men", "Dem. women", "Rep. men", "Rep. women"),
+        xlab = "Gender and party",
+        ylab = "Proportion of pro-feminist rulings",
+        main  = "Pro-feminist rulings by gender and party")
+        
+# Re-check if groups match their corresponding median values
+tapply(dbj$progressive.vote, list(dbj$republican, dbj$woman), 
+        median, na.rm = TRUE)
+```
+
+
+**Answer.**
+Yes, the results are surprising that the group of male Democratic judges tend 
+to have pro-feminist voting behavior due to its highest median of 0.50. 
+Meanwhile, the group of female Republican judges has the lowest proportion of 
+pro-feminist rulings with a median of 0.33. 
+
+For both men and women, Democratic judges have higher median proportions of  
+pro-feminist rulings than Republican ones. Thus, partisanship shows big
+differences. However, gender has some differences, but smaller. Among Democrats,
+men have a higher median than women, and among Republicans, men and women have 
+similar medians. Therefore, partisanship has a greater contribution to 
+progressive voting patterns. 
+
+We shouldn't interpret these effects as causally because judges are not randomly
+assigned to partisanship and gender. Moreover, there are many other factors that 
+possibly cause the difference in pro-feminist rulings, such as ideology, age, 
+and judicial experiences. 
+
+
+
+## Question 2.3
+
+*Create a new binary variable which takes a value of 1 if a judge has at least one child (that is, any children at all), 0
+otherwise. Then, use this variable to answer the following questions. Are Republicans and Democrats equally likely
+to be parents (that is, have at least one child)? Do judges with children vote differently than judges without? If so,
+how are they different? Do republican and democratic parents vote differently on feminist issues?*
+
+```{r q2-3}
+# Create a binary variable
+dbj$parent <- ifelse(dbj$child >= 1, 1, 0)
+
+# Compute the proportion of parents within each party
+table(dbj$republican, dbj$parent)
+prop.table(table(dbj$republican, dbj$parent), 1) # pick 1 (rows) to compute %
+                                                  # partisanship
+
+# Compute the proportion of pro-feminist voting within parent and non-parent
+# groups
+tapply(dbj$progressive.vote, dbj$parent, mean, na.rm = TRUE) # for the voting comparisons                                                         #should use mean rather than the median
+
+# Compute the proportion of pro-feminist voting between 2 parties 
+# within parent groups
+tapply(dbj$progressive.vote[dbj$parent == "1"], 
+      dbj$republican[dbj$parent == "1"], mean, na.rm = TRUE)
+```
+
+**Answer.**
+88.35% Democrats are parents, and 89.26% Republicans are parents. The difference
+is small. Thus, Republicans and Democrats are relatively similar in the 
+likelihood of being parents. Republicans are slightly more likely to be parents. 
+
+Judges with children vote differently than judges without. Judges with 
+children have a slightly lower proportion of pro-feminist voting than those 
+without children (0.41 < 0.42). 
+
+Yes, republican and democratic parents vote differently on feminist issues. 
+Democrat parents have a higher median proportion of voting on feminist issues 
+than Republican ones (0.50 > 0.33). 
+
+
+## Question 2.4
+
+*What is the difference in the proportion of pro-feminist decisions between judges who have at least one daughter
+and those who do not have any? Compute this difference in two ways; (1) using the entire sample, (2) separately by
+the number of children judges have (only considering judges that have 3 children or less). What assumptions are
+required for us to interpret these differences as causal estimates?*
+
+```{r q2-4}
+# Create a binary variable for 2 groups of judges who have at least 1 daughter
+dbj$daughter <- ifelse(dbj$girls >= 1, 1, 0)
+
+# Use the entire sample to compute the difference in the proportion of 
+# pro-feminist decisions
+mean(dbj$progressive.vote[dbj$daughter == "1"]) -
+    mean(dbj$progressive.vote[dbj$daughter == "0"])
+
+tapply(dbj$progressive.vote, dbj$daughter, mean, na.rm = TRUE)
+
+### Separately by the number of children judges have, then compute the difference
+### in the proportion of pro-femnist decisions while holding the number of child
+### constant
+# Create a variable for the sample of judges with 3 children or less
+dbj.3 <- dbj[dbj$child <= 3, ]
+
+# Compute the difference in the proportion for those who have 1 child
+mean(dbj.3$progressive.vote[dbj.3$child == "1" & dbj.3$daughter == "1"]) -
+    mean(dbj.3$progressive.vote[dbj.3$child == "1" & dbj.3$daughter == "0"])
+    
+# Compute the difference in the proportion for those who have 2 children
+mean(dbj.3$progressive.vote[dbj.3$child == "2" & dbj.3$daughter == "1"]) -
+    mean(dbj.3$progressive.vote[dbj.3$child == "2" & dbj.3$daughter == "0"])
+    
+# Compute the difference in the proportion for those who have 3 children
+mean(dbj.3$progressive.vote[dbj.3$child == "3" & dbj.3$daughter == "1"]) -
+    mean(dbj.3$progressive.vote[dbj.3$child == "3" & dbj.3$daughter == "0"])
+
+```
+
+**Answer.**
+For the entire sample, the proportion of pro-feminist decisions is 6.4 
+percentage points higher among judges who have at least one daughter than among
+those who don't. 
+
+Separately, among judges having 1 child, the proportion of pro-feminist 
+decisions is 24.08 percentage points higher among judges having at least one
+daughter than those having no daughter. 
+
+Among judges having 2 children, the proportion of pro-feminist decisions is 
+8.47 percentage points higher among judges having at least one daughter than 
+those having no daughter. 
+
+Among judges having 3 children, the proportion of pro-feminist decisions is 
+18.93 percentage points higher among judges having at least one daughter than 
+those having no daughter. 
+
+To interpret these differences as causal estimates, we're required some 
+assumptions. First, there is no other possible confounding factors, such as age, 
+political ideology of judges, judical experiences, or family background that may
+affect the possibility of having a daughter and making a judical decision. 
+
+Second, among judges who have the same number of children, it's required that 
+having a daughter isn't associated with other factors that determine 
+pro-feminist decisions. 
+
+Third, judges are independent from each other in making decisions. One's having 
+a daughter doesn't affect the other's pro-feminist decision. 
+
+## Question 2.5
+
+*Next, we are going to consider the design of this study. The original authors assume that conditional on the number
+of children a judge has the number of daughters is random (as we did in the previous question). Indeed, this is the
+assumption that would justify the analysis of the previous question. For example, among the judges who have two
+children, the number of daughters – either 0, 1, or 2 – has nothing to do with the (observed or unobserved) pretreatment
+characteristics of judges. Is this assumption reasonable? Is there a scenario under which this assumption
+can be violated? Do the data support the assumption?*
+
+### The question asks the number of daughters conditional on number of children, 
+### the answer collapses daughter composition into no daughter versus at least one daughter
+
+```{r q2-5}
+### To examine if the data supports the assumption, need to test if the 
+### pre-treatment characteristics of race and religion among judges remain 
+### different systematically across different numbers of daughter while holding
+### the number of children constant
+
+## Compare the characteristic of race within each number of children, use 
+## the sample of judges with 3 children or less to test
+
+# For judges with 1 child
+table(dbj.3$race[dbj.3$child == "1"], dbj.3$daughter[dbj.3$child == "1"])
+prop.table(table(dbj.3$race[dbj.3$child == "1"], dbj.3$daughter[dbj.3$child == "1"]), 2)
+
+# For judges with 2 children
+table(dbj.3$race[dbj.3$child == "2"], dbj.3$daughter[dbj.3$child == "2"])
+prop.table(table(dbj.3$race[dbj.3$child == "2"], dbj.3$daughter[dbj.3$child == "2"]), 2)
+
+# For judges with 3 children
+table(dbj.3$race[dbj.3$child == "3"], dbj.3$daughter[dbj.3$child == "3"])
+prop.table(table(dbj.3$race[dbj.3$child == "3"], dbj.3$daughter[dbj.3$child == "3"]), 2)
+
+## Compare the characteristic of religion within each number of children, use 
+## the sample of judges with 3 children or less to test
+
+# For judges with 1 child
+table(dbj.3$religion[dbj.3$child == "1"], dbj.3$daughter[dbj.3$child == "1"])
+prop.table(table(dbj.3$religion[dbj.3$child == "1"], dbj.3$daughter[dbj.3$child == "1"]), 2)
+
+# For judges with 2 children
+table(dbj.3$religion[dbj.3$child == "2"], dbj.3$daughter[dbj.3$child == "2"])
+prop.table(table(dbj.3$religion[dbj.3$child == "2"], dbj.3$daughter[dbj.3$child == "2"]), 2)
+
+# For judges with 3 children
+table(dbj.3$religion[dbj.3$child == "3"], dbj.3$daughter[dbj.3$child == "3"])
+prop.table(table(dbj.3$religion[dbj.3$child == "3"], dbj.3$daughter[dbj.3$child == "3"]), 2)
+
+```
+
+**Answer.**
+This assumption is reasonable. Because the gender of a child isn't determined 
+by the judges' control, but biological factors. Therefore, among judges, who 
+have the same number of children, with different numbers of daughter, having
+similar pre-treatment characteristics. 
+
+This assumption could be violated if the number of daughter is related to
+the judges' pre-treatment characteristics, possibly affecting their pro-feminist
+voting behavior. For instance, in the contexts of gender-selection and family
+preferences, the judges' family, which already have a daughter, may have a 
+preference of having a son, and thus they try to have the second child. 
+Meanwhile, in the judges' family, which already have a son, they may have no 
+attempt to have the second child. Accordingly, among judges with the same 
+number of children, the number of daughter is related to the 
+judges' pre-treatment characteristics. 
+
+In terms of race and religion, we see that the racial proportion and the 
+religious proportion are approximately the same across two groups of daughter 
+(no daughter and at least 1 daughter). Thus, this data supports the assumption.
+
