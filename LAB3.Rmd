@@ -1,0 +1,217 @@
+---
+title: "Lab 3: From Tables to Regression"
+subtitle: "POL 601"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "##")
+```
+Key variables:
+
+| Name | Description |
+|------|-------------|
+| `mpg` | Miles per gallon (fuel efficiency) |
+| `am`  | Transmission: 1 = manual, 0 = automatic |
+| `wt`  | Weight (in 1,000 lbs) |
+| `qsec`| Quarter-mile time (seconds; higher = slower) |
+| `gear`| Number of forward gears (3, 4, 5) |
+
+## Setup
+
+```{r}
+data(mtcars)
+head(mtcars)
+dim(mtcars)
+```
+
+---
+
+## Part 1 — Describing categorical variables 
+
+A frequency table tells us counts; `prop.table()` turns them into proportions.
+
+```{r}
+table(mtcars$gear)
+prop.table(table(mtcars$gear))
+```
+
+**Reading it:** about 47% of cars have 3 gears, 38% have 4, and 16% have 5. When the categories are ordered, it often helps to *combine* adjacent categories when summarizing (e.g., "4 or more gears" = 38 + 16 = 53%).
+
+### Cross-tabulation: which proportions do you want?
+
+A cross-tab can be summarized three ways: as shares of the **whole table**, of each **column**, or of each **row**. To compare groups, you want proportions *within* each group.
+
+```{r}
+tab <- table(mtcars$am, mtcars$gear)
+tab
+prop.table(tab, margin = 1)   # margin = 1 -> each ROW sums to 1
+```
+
+The same thing with `gmodels::CrossTable()`, which prints counts and proportions together. Turning off the extra proportions keeps the table readable:
+
+```{r, eval=FALSE}
+# install.packages("gmodels")   # run once if needed
+library(gmodels)
+CrossTable(mtcars$am, mtcars$gear,
+           prop.chisq = FALSE, prop.t = FALSE, prop.c = FALSE)
+```
+
+**Reading it:** 79% of automatics have 3 gears; no manual car does. That is a large, substantively meaningful difference. A few percentage points would not be.
+
+---
+
+## Part 2 — Two continuous variables
+
+### Scatterplot + fitted line + correlation
+
+```{r}
+fit.wt <- lm(mpg ~ wt, data = mtcars)
+
+plot(mtcars$wt, mtcars$mpg,
+     xlab = "Weight (1,000 lbs)",   # x label matches the FIRST argument
+     ylab = "Miles per gallon",     # y label matches the SECOND argument
+     pch = 16)
+abline(fit.wt, col = "red")
+legend("topright", bty = "n",
+       legend = paste("Cor =", round(cor(mtcars$wt, mtcars$mpg), 2)))
+```
+
+### Correlation matrix
+
+To see many pairwise correlations at once, pass a data frame of selected columns. `use = "complete.obs"` drops rows with missing values (no missings here, but real survey data usually have them).
+
+```{r}
+cor(mtcars[c("mpg", "wt", "hp", "qsec")], use = "complete.obs")
+```
+
+Read one row at a time: the `mpg` row shows how fuel efficiency relates to each of the others.
+
+> Which variable is most weakly related to `mpg`? Which pair of predictors is most strongly related to each other?
+
+---
+
+## Part 3 — Regression with a binary predictor
+
+```{r}
+fit.am <- lm(mpg ~ am, data = mtcars)
+fit.am
+```
+
+**Interpreting in units** (not just "positive" or "negative"):
+
+- **Intercept (17.15):** predicted mpg when `am = 0`, i.e., the average mpg of **automatic** cars.
+- **Slope on `am` (7.24):** manual cars get, on average, **7.24 more miles per gallon** than automatics.
+- So the predicted mpg for manual cars is 17.15 + 7.24 = 24.39.
+
+With a single 0/1 predictor, the regression reproduces the two group means exactly:
+
+**Units tip:** if the outcome were a proportion (0–1), a slope of 0.05 would mean "5 **percentage points**," not "5 percent."
+
+### Boxplot by group, with readable labels
+
+Turn the 0/1 variable into a labeled factor:
+
+```{r}
+mtcars$trans <- factor(mtcars$am, levels = c(0, 1),    # convert binary var ito a factor
+                       labels = c("Automatic", "Manual"))
+
+boxplot(mpg ~ trans, data = mtcars,
+        xlab = "Transmission type",
+        ylab = "Miles per gallon")
+```
+
+Or, without making a factor, use `names =`:
+
+```{r, eval=FALSE}
+boxplot(mtcars$mpg ~ mtcars$am,
+        names = c("Automatic", "Manual"),
+        ylab = "Miles per gallon")
+```
+
+**Reading a boxplot:** the thick line is the median, the box spans the middle 50% (IQR), whiskers extend to the most extreme points within 1.5 × IQR, and circles are outliers.
+
+---
+
+## Part 4 — Predicted values, substantive size, and $R^2$ 
+
+Does quarter-mile time predict fuel efficiency?
+
+```{r}
+fit.q <- lm(mpg ~ qsec, data = mtcars)
+coef(fit.q)
+```
+
+Each additional second on the quarter mile is associated with 1.41 more mpg on average.
+
+### Plotting predictions across the observed range
+
+Build a grid of x values with `seq()`, then `predict()`:
+
+```{r}
+range(mtcars$qsec)
+q.grid <- seq(from = 14.5, to = 23, by = 0.5)
+pred.q <- predict(fit.q, newdata = data.frame(qsec = q.grid))
+
+plot(q.grid, pred.q, type = "l",
+     xlab = "Quarter-mile time (seconds)",
+     ylab = "Predicted miles per gallon")
+```
+
+**Caution:** the y-axis of a prediction plot zooms in on the fitted line, so almost any slope *looks* steep. Always check the y-axis range before calling an effect "strong."
+
+### Is the effect substantively large?
+
+Compare a realistic change in x with the spread of y:
+
+```{r}
+summary(mtcars$qsec)
+
+p <- predict(fit.q, newdata = data.frame(qsec = c(mean(mtcars$qsec),
+                                                   quantile(mtcars$qsec, 0.75))))
+p
+diff(p)          # change from the mean to the 3rd quartile
+sd(mtcars$mpg)   # typical spread of the outcome
+```
+
+Moving from the mean to the third quartile raises predicted mpg by about 1.5, roughly a quarter of a standard deviation of `mpg`. Useful, but modest.
+
+
+## Part 5 — When a second predictor changes the story 
+
+Manual cars get 7 more mpg. But do manual and automatic cars differ in *other* ways that also affect mpg?
+
+### Look first: color points by group
+
+```{r}
+mtcars$col <- ifelse(mtcars$am == 1, "red", "blue")
+
+plot(mtcars$wt, mtcars$mpg, col = mtcars$col, pch = 16,
+     xlab = "Weight (1,000 lbs)", ylab = "Miles per gallon", bty = "l")
+legend("topright", legend = c("Manual", "Automatic"),
+       col = c("red", "blue"), pch = 16, bty = "n")
+
+tapply(mtcars$wt, mtcars$am, mean)
+```
+
+Manual cars cluster at **low weights**, and weight is strongly related to mpg. So weight is tangled up with transmission type.
+
+### Add weight to the model
+
+```{r}
+fit.both <- lm(mpg ~ am + wt, data = mtcars)
+fit.both
+```
+
+**Interpreting each coefficient, holding the other constant:**
+
+- **`am` (−0.02):** comparing manual and automatic cars *of the same weight*, manual cars get about 0.02 **fewer** mpg, essentially no difference.
+- **`wt` (−5.35):** holding transmission type constant, each additional 1,000 lbs is associated with 5.35 fewer mpg.
+
+The 7-mpg "manual advantage" from Part 3 mostly reflected the fact that manual cars were lighter. Adding a variable related to *both* the predictor and the outcome can shrink, erase, or even flip a coefficient. This is the logic of **omitted variable bias**.
+
+### What about the intercept?
+
+The intercept (37.3) is the predicted mpg for an automatic car (`am = 0`) that weighs **0 lbs**. No such car exists (the lightest in the data weighs about 1,500 lbs), so the intercept is a mathematical anchor for the line, not a meaningful prediction. Always ask: *is "all predictors = 0" a realistic case?* If not, the intercept is not substantively interesting, and predictions far outside the observed data should be treated with suspicion.
