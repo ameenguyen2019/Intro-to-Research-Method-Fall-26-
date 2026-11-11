@@ -190,12 +190,12 @@ tail toward higher values of mortality, thus we need to do log transformation.
 The results suggest that as polity is zero, log of infant mortality is 3.79.
 Additionally, for every one-unit change in polity score, log of infant mortality 
 has a decrease of 0.07 percentage point. Alternatively, for each one-unit change 
-in polity score, there is a 6.94% decrease in infant mortality. 
+in polity score, infant mortality has a decrease of 6.94 percent. 
 
 The t-value of polity is approximately 14.87 times larger than the threshold 
 (-29.14 = 1.96 x 14.87), and p-value of polity is less than 2e-16 
 (or p-value < 0.001). Therefore, the coefficient of polity is very statistically 
-significant at the 0.1% significance level.
+significant at the 0.1% level.
 
 ## Question 7
 
@@ -239,10 +239,123 @@ is to do this: (exp(coef(model_name)[2] - 1) * 100), and interpret the result as
 Both options are OK in terms of this problem set, but the latter is the right approach in research.]*
 
 ```{r q8}
+# plot the distribution of population density
+summary(merge_data$pop_density) # heavily right-skewed, need to log
+
+hist(merge_data$pop_density, freq = FALSE,
+     xlab = "Population density",
+     col = "red",
+     main = "Distribution of population density")
+
+# plot the distribution of gdp growth 
+summary(merge_data$gdp_growth) # though the right tail is a bit longer that 
+                              # indicates right-skewness, but mean and median
+                              # are quite close (3.8 & 3.7), and data isn't 
+                              # heavily distorted, thus not need to log
+                              
+hist(merge_data$gdp_growth, freq = FALSE,
+     xlab = "Gdp growth",
+     col = "orange",
+     main = "Distribution of gdp growth")
+
+# plot the distribution of gdp per capita
+summary(merge_data$gdp_per_capita) # right-skewed, need to log
+
+hist(merge_data$gdp_per_capita, freq = FALSE,
+     xlab = "Gdp per capita",
+     col = "purple",
+     main = "Distribution of gdp per capita")
+
+# Do log transformation for 3 vars
+merge_data$pop_density_ln <- log(merge_data$pop_density)
+merge_data$gdp_per_capita_ln <- log(merge_data$gdp_per_capita)
+
+# Now regress logged infant mortality (DV) on polity score plus 3 predictors 
+m2 <- lm(inf_mort_ln ~ polity + pop_density_ln + gdp_growth + gdp_per_capita_ln, 
+         data = merge_data). ### if run gdp_growth_ln shows error
+summary(m2)
+
+# compute the percentage change of polity on infant mortality
+(exp(coef(m2)[2]) - 1) * 100 # beta = -1.71
+# compute the percentage change of population density on infant mortality
+(exp(coef(m2)[3]) - 1) * 100 # beta = -18.11
+# compute the percentage change of GDP growth on infant mortality
+(exp(coef(m2)[4]) - 1) * 100 # beta = 0.42
+# compute the percentage change of GDP per capita on infant mortality
+(exp(coef(m2)[5]) - 1) * 100 # beta = -48.1
+
+
+
 
 ```
 
 **Answer.**
+Regarding the gdp_growth variable, the distribution indicates a bit longer tail 
+to the right, or right-skewness. However, mean and median are relatively close 
+to each other (3.8 & 3.7), and data isn't heavily distorted. Therefore, 
+gdp_growth doesn't need to be logged. Meanwhile, population density and gdp per 
+capita are heavily right-skewed, and thus they need to be logged. 
+
+The null hypothesis: the effect of polity on infant mortality is 0 while 
+controlling for logged population density, GDP growth, and logged GDP per capita.
+
+Interpret the polity variable: For every one-unit change in polity score, log of 
+infant mortality has a decrease of 0.02 percentage point while controlling for 
+logged population density, GDP growth, and logged GDP per capita. Alternatively, 
+for each one-unit change in polity score, infant mortality has a decrease of 
+1.71 percent, while controlling for logged population density, GDP growth, and 
+logged GDP per capita. 
+
+Interpret standard error and p-value on the polity variable: the estimated 
+coefficient for polity is -0.02, with a standard error of 0.002 and t-value of 
+-9.9 this indicates that the coefficient of polity is approximately 9.9 
+standard errors below 0. p-value is extremely small (p < 0.001), implying that 
+the effect of polity on infant mortality is statistically significant at 
+the 0.1% level. This provides strong evidence against the null hypothesis that 
+the polity coefficient equals zero. 
+
+Interpret the effect of 3 confounders: 
+First, for every one-unit change in logged population density, log of infant 
+mortality has a decrease of 0.2 percentage point while controlling for polity,
+GDP growth, and logged GDP per capita. Alternatively, for each one-unit change 
+in population density, infant mortality has a decrease of 18.1 percent, while 
+controlling for polity, GDP growth, and logged GDP per capita. The effect of 
+population density is statistically significant at the 0.1% level 
+(p-value < 0.001). 
+
+Second, for every one-unit change in GDP growth, log of infant mortality has an 
+increase of 0.004 percentage point while controlling for polity, logged 
+population density, and logged GDP per capita. Alternatively, for each one-unit 
+change in GDP growth, infant mortality has an increase of 0.42 percent, while 
+controlling for polity, logged population density, and logged GDP per capita. 
+The effect of GDP growth is statistically significant at the 5% level
+(p-value < 0.05)
+
+Third, for every one-unit change in logged GDP per capita, log of infant mortality 
+has a decrease of 0.66 percentage point while controlling for polity, logged
+popultation density, and GDP growth. Alternatively, for each one-unit change 
+in GDP per capita, infant mortality has a decrease of 48.1 percent, while 
+controlling for polity, logged population density, and GDP growth. The effect of 
+GDP per capita is statistically significant at the 0.1% level 
+(p-value < 0.001). 
+
+In what ways have the results changed? 
+Regarding additional confounders, population density has a negative association
+with infant mortality, GDP per capita has a negative association, but GDP growth 
+has a positive association with infant mortality. While the findings of 
+population density and GDP per capita are consistent with theory, that of GDP
+growth is not. In conclusion, these findings are partially consistent with 
+theoretically predicted relationships.
+
+After controlling for 3 confounders, the percent change of polity on infant 
+mortality appears to decrease. In the first model, the percent change of polity
+on infant mortality experiences a 6.9% decrease that is greater than the 
+percent change in the second model, a 1.71% decrease. This suggests that 3 
+additional predictors of economic and demographic conditions also have 
+explanatory power in accounting for variation in infant mortality beyond the 
+effect of democracy. 
+
+
 
 
 ## Question 9
@@ -253,6 +366,12 @@ table. Make sure (1) the DV of the models is clear; (2) you relabel the variable
 (3) you include some key statistics for each model, such as N or r2 to assess model fit.*
 
 ```{r q9, results='asis'}
+# print 2 models in one table & relabel variable names
+library(stargazer)
+stargazer(m1, m2, column.labels = c("Bivariate regression", "Multivariate regression"),
+          covariate.labels = c("Polity", "Logged population density",
+                               "GDP growth", "Logged GDP per capita"),
+          type="html", out="tab.html")
 
 ```
 
